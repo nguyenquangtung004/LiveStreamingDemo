@@ -2067,6 +2067,11 @@
   resolved "https://registry.yarnpkg.com/@vscode/sudo-prompt/-/sudo-prompt-9.3.1.tgz#c562334bc6647733649fd42afc96c0eea8de3b65"
   integrity sha512-9ORTwwS74VaTn38tNbQhsA5U44zkJfcb0BdTSyyG6frP4e8KMtHuTXYmwefe5dpL8XB1aGSIVTaLjD3BbWb5iA==
 
+"@zegocloud/zego-effects-reactnative@^2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@zegocloud/zego-effects-reactnative/-/zego-effects-reactnative-2.2.1.tgz#0b0119ac609c8fa030fee5a79ab367a27e69d128"
+  integrity sha512-2p1IyHsJuQ/tqdikF0hoUnbfEZEwDEIebb73dGbgrXiRTZ9GL8NIhMBR99dP/6xsZKFD8b1zHt71lWerx0sNiA==
+
 "@zegocloud/zego-uikit-prebuilt-live-streaming-rn@^2.5.8":
   version "2.5.8"
   resolved "https://registry.yarnpkg.com/@zegocloud/zego-uikit-prebuilt-live-streaming-rn/-/zego-uikit-prebuilt-live-streaming-rn-2.5.8.tgz#6df0357e1d3915b9db285dc53d9d9489145aa2e2"
@@ -6668,7 +6673,7 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-zego-express-engine-reactnative@^3.14.5:
+zego-express-engine-reactnative@^3.20.2:
   version "3.20.2"
   resolved "https://registry.yarnpkg.com/zego-express-engine-reactnative/-/zego-express-engine-reactnative-3.20.2.tgz#70c997dd679d0d2945be8f2d70ecfdd1228b3b48"
   integrity sha512-MtTdVWYxt6Qxq6FVLYRalIdwxDXavDEjabl7+Z7ntSDG/ps5QWfldCPIknZXSJUCCGXJ1CLnVMlHFwzvh5SEkg==
