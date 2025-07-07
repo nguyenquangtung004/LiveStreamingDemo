@@ -1,4 +1,4 @@
-// FIXME: Xây dựng giao diện Live Stream giống TikTok
+// FIXME: Xây dựng giao diện Live Stream đầy đủ tính năng
 import React, { Component, createRef } from 'react';
 import {
   SafeAreaView,
@@ -14,7 +14,9 @@ import {
   findNodeHandle,
   PermissionsAndroid,
   Platform,
-  Dimensions
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView
 } from 'react-native';
 
 // NOTE: Import ZegoExpressEngine và các components cần thiết
@@ -52,7 +54,8 @@ const Colors = {
   textDark: '#161823',
   success: '#00D4AA',
   warning: '#FFB800',
-  error: '#FF3040'
+  error: '#FF3040',
+  disabled: 'rgba(255,255,255,0.3)'
 };
 
 export default class TikTokLiveStreamApp extends Component {
@@ -69,12 +72,25 @@ export default class TikTokLiveStreamApp extends Component {
       isStreaming: false,
       isWatching: false,
       viewerCount: 0,
-      messages: []
+      messages: [],
+      
+      // FEATURE: Điều khiển mic và camera
+      isMicEnabled: true,
+      isCameraEnabled: true,
+      
+      // FEATURE: Chat input
+      chatInput: '',
+      showChatInput: false,
+      
+      // FEATURE: Filters và Effects
+      isBeautyFilterOn: false,
+      currentFilter: 'none'
     };
     
     // FIXME: Sử dụng createRef() cho video views
     this.broadcasterViewRef = createRef();
     this.viewerStreamRef = createRef();
+    this.chatInputRef = createRef();
     this.mediaPlayer = null;
   }
 
@@ -210,7 +226,8 @@ export default class TikTokLiveStreamApp extends Component {
             id: msg.messageID,
             text: msg.message,
             user: msg.fromUser.userName,
-            time: new Date().toLocaleTimeString()
+            time: new Date().toLocaleTimeString(),
+            type: 'message'
           }]
         }));
       });
@@ -224,34 +241,161 @@ export default class TikTokLiveStreamApp extends Component {
     ZegoExpressEngine.instance().on('playerStateUpdate', (streamID, state, errorCode, extendedData) => {
       console.log(`Player ${streamID}: ${state}, lỗi: ${errorCode}`);
     });
+
+    // FEATURE: Theo dõi số lượng người trong phòng
+    ZegoExpressEngine.instance().on('roomUserUpdate', (roomID, updateType, userList) => {
+      if (updateType === 0) { // User joined
+        this.setState(prevState => ({
+          viewerCount: prevState.viewerCount + userList.length
+        }));
+      } else if (updateType === 1) { // User left
+        this.setState(prevState => ({
+          viewerCount: Math.max(0, prevState.viewerCount - userList.length)
+        }));
+      }
+    });
+  };
+
+  // FUNCTIONALITY: Bật/tắt microphone
+  toggleMicrophone = () => {
+    const newMicState = !this.state.isMicEnabled;
+    ZegoExpressEngine.instance().muteMicrophone(!newMicState);
+    this.setState({ isMicEnabled: newMicState });
+    
+    // NOTE: Gửi thông báo cho viewers
+    const message = newMicState ? '🎤 Đã bật mic' : '🔇 Đã tắt mic';
+    this.sendSystemMessage(message);
+  };
+
+  // FUNCTIONALITY: Bật/tắt camera
+  toggleCamera = () => {
+    const newCameraState = !this.state.isCameraEnabled;
+    ZegoExpressEngine.instance().enableCamera(newCameraState);
+    this.setState({ isCameraEnabled: newCameraState });
+    
+    // NOTE: Gửi thông báo cho viewers
+    const message = newCameraState ? '📷 Đã bật camera' : '📷 Đã tắt camera';
+    this.sendSystemMessage(message);
+  };
+
+  // FUNCTIONALITY: Chuyển đổi camera trước/sau
+  switchCamera = () => {
+    ZegoExpressEngine.instance().useFrontCamera(!this.state.isFrontCamera);
+    this.setState(prevState => ({ isFrontCamera: !prevState.isFrontCamera }));
+  };
+
+  // FUNCTIONALITY: Gửi tin nhắn hệ thống
+  sendSystemMessage = (message) => {
+    this.setState(prevState => ({
+      messages: [...prevState.messages, {
+        id: Date.now(),
+        text: message,
+        user: 'Hệ thống',
+        time: new Date().toLocaleTimeString(),
+        type: 'system'
+      }]
+    }));
   };
 
   // FUNCTIONALITY: Gửi tin nhắn chat
-  sendMessage = (message) => {
-    if (message.trim()) {
-      ZegoExpressEngine.instance().sendBroadcastMessage(this.state.roomID, message);
+  sendMessage = (message = null) => {
+    const messageToSend = message || this.state.chatInput.trim();
+    
+    if (messageToSend) {
+      ZegoExpressEngine.instance().sendBroadcastMessage(this.state.roomID, messageToSend);
+      
+      // NOTE: Thêm tin nhắn vào local state ngay lập tức
+      this.setState(prevState => ({
+        messages: [...prevState.messages, {
+          id: Date.now(),
+          text: messageToSend,
+          user: this.state.userName,
+          time: new Date().toLocaleTimeString(),
+          type: 'message',
+          isOwn: true
+        }],
+        chatInput: '',
+        showChatInput: false
+      }));
+      
+      Keyboard.dismiss();
     }
+  };
+
+  // FUNCTIONALITY: Hiển thị/ẩn chat input
+  toggleChatInput = () => {
+    this.setState(prevState => ({ 
+      showChatInput: !prevState.showChatInput 
+    }), () => {
+      if (this.state.showChatInput && this.chatInputRef.current) {
+        setTimeout(() => {
+          this.chatInputRef.current.focus();
+        }, 100);
+      }
+    });
+  };
+
+  // FUNCTIONALITY: Bật/tắt beauty filter
+  toggleBeautyFilter = () => {
+    const newState = !this.state.isBeautyFilterOn;
+    // TODO: Implement beauty filter với ZegoExpressEngine
+    this.setState({ isBeautyFilterOn: newState });
+    
+    const message = newState ? '✨ Đã bật làm đẹp' : '✨ Đã tắt làm đẹp';
+    this.sendSystemMessage(message);
+  };
+
+  // FUNCTIONALITY: Gửi reaction nhanh
+  sendQuickReaction = (emoji) => {
+    this.sendMessage(emoji);
+    
+    // TODO: Hiển thị animation cho reaction
+    this.setState(prevState => ({
+      messages: [...prevState.messages, {
+        id: Date.now(),
+        text: emoji,
+        user: this.state.userName,
+        time: new Date().toLocaleTimeString(),
+        type: 'reaction'
+      }]
+    }));
   };
 
   // FUNCTIONALITY: Kết thúc stream hoặc rời phòng
   endStream = () => {
-    ZegoExpressEngine.instance().logoutRoom(this.state.roomID);
-    
-    if (this.state.isStreaming) {
-      ZegoExpressEngine.instance().stopPreview();
-      ZegoExpressEngine.instance().stopPublishingStream();
-    }
-    
-    if (this.state.isWatching) {
-      ZegoExpressEngine.instance().stopPlayingStream(`stream_${this.state.roomID}`);
-    }
-    
-    this.setState({
-      currentScreen: 'home',
-      isStreaming: false,
-      isWatching: false,
-      messages: []
-    });
+    Alert.alert(
+      'Xác nhận',
+      this.state.isStreaming ? 'Bạn có muốn kết thúc livestream?' : 'Bạn có muốn rời khỏi phòng?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { 
+          text: 'Đồng ý', 
+          onPress: () => {
+            ZegoExpressEngine.instance().logoutRoom(this.state.roomID);
+            
+            if (this.state.isStreaming) {
+              ZegoExpressEngine.instance().stopPreview();
+              ZegoExpressEngine.instance().stopPublishingStream();
+            }
+            
+            if (this.state.isWatching) {
+              ZegoExpressEngine.instance().stopPlayingStream(`stream_${this.state.roomID}`);
+            }
+            
+            this.setState({
+              currentScreen: 'home',
+              isStreaming: false,
+              isWatching: false,
+              messages: [],
+              isMicEnabled: true,
+              isCameraEnabled: true,
+              showChatInput: false,
+              chatInput: ''
+            });
+          }
+        }
+      ]
+    );
   };
 
   // FUNCTIONALITY: Cleanup khi component unmount
@@ -315,9 +459,49 @@ export default class TikTokLiveStreamApp extends Component {
     </View>
   );
 
+  // UI/UX: Render controls cho broadcaster
+  renderBroadcasterControls = () => (
+    <View style={styles.broadcasterControls}>
+      {/* FEATURE: Điều khiển mic và camera */}
+      <View style={styles.primaryControls}>
+        <TouchableOpacity 
+          style={[styles.controlButton, !this.state.isMicEnabled && styles.disabledButton]}
+          onPress={this.toggleMicrophone}
+        >
+          <Text style={styles.controlIcon}>
+            {this.state.isMicEnabled ? '🎤' : '🔇'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.controlButton, !this.state.isCameraEnabled && styles.disabledButton]}
+          onPress={this.toggleCamera}
+        >
+          <Text style={styles.controlIcon}>
+            {this.state.isCameraEnabled ? '📷' : '📷'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.controlButton}
+          onPress={this.switchCamera}
+        >
+          <Text style={styles.controlIcon}>🔄</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.controlButton, this.state.isBeautyFilterOn && styles.activeButton]}
+          onPress={this.toggleBeautyFilter}
+        >
+          <Text style={styles.controlIcon}>✨</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   // UI/UX: Render màn hình broadcaster
   renderBroadcasterScreen = () => (
-    <View style={styles.streamContainer}>
+    <KeyboardAvoidingView style={styles.streamContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.videoContainer}>
         <ZegoTextureView 
           ref={this.broadcasterViewRef} 
@@ -341,22 +525,67 @@ export default class TikTokLiveStreamApp extends Component {
 
         {/* FEATURE: Chat overlay */}
         <View style={styles.chatOverlay}>
-          {this.state.messages.slice(-5).map((msg, index) => (
-            <View key={index} style={styles.chatMessage}>
-              <Text style={styles.chatText}>
-                <Text style={styles.chatUser}>{msg.user}: </Text>
-                {msg.text}
-              </Text>
-            </View>
-          ))}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {this.state.messages.slice(-10).map((msg, index) => (
+              <View key={index} style={[
+                styles.chatMessage,
+                msg.type === 'system' && styles.systemMessage,
+                msg.type === 'reaction' && styles.reactionMessage
+              ]}>
+                <Text style={styles.chatText}>
+                  <Text style={[
+                    styles.chatUser, 
+                    msg.type === 'system' && styles.systemUser,
+                    msg.isOwn && styles.ownUser
+                  ]}>
+                    {msg.user}: 
+                  </Text>
+                  {msg.text}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
+
+        {/* FEATURE: Broadcaster controls */}
+        {this.renderBroadcasterControls()}
+
+        {/* FEATURE: Chat input */}
+        {this.state.showChatInput && (
+          <View style={styles.chatInputContainer}>
+            <TextInput
+              ref={this.chatInputRef}
+              style={styles.chatInput}
+              placeholder="Nhập tin nhắn..."
+              placeholderTextColor={Colors.disabled}
+              value={this.state.chatInput}
+              onChangeText={(text) => this.setState({ chatInput: text })}
+              onSubmitEditing={() => this.sendMessage()}
+              returnKeyType="send"
+            />
+            <TouchableOpacity 
+              style={styles.sendButton}
+              onPress={() => this.sendMessage()}
+            >
+              <Text style={styles.sendButtonText}>📤</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* FEATURE: Chat toggle button */}
+        <TouchableOpacity 
+          style={styles.chatToggleButton}
+          onPress={this.toggleChatInput}
+        >
+          <Text style={styles.chatToggleText}>💬</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 
   // UI/UX: Render màn hình viewer
   renderViewerScreen = () => (
-    <View style={styles.streamContainer}>
+    <KeyboardAvoidingView style={styles.streamContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.videoContainer}>
         <ZegoTextureView 
           ref={this.viewerStreamRef} 
@@ -367,6 +596,7 @@ export default class TikTokLiveStreamApp extends Component {
         <View style={styles.overlayTop}>
           <View style={styles.roomInfo}>
             <Text style={styles.roomIdText}>🔴 LIVE - ID: {this.state.roomID}</Text>
+            <Text style={styles.viewerCountText}>👥 {this.state.viewerCount} người xem</Text>
           </View>
           
           <TouchableOpacity 
@@ -379,34 +609,90 @@ export default class TikTokLiveStreamApp extends Component {
 
         {/* FEATURE: Chat overlay */}
         <View style={styles.chatOverlay}>
-          {this.state.messages.slice(-5).map((msg, index) => (
-            <View key={index} style={styles.chatMessage}>
-              <Text style={styles.chatText}>
-                <Text style={styles.chatUser}>{msg.user}: </Text>
-                {msg.text}
-              </Text>
-            </View>
-          ))}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {this.state.messages.slice(-10).map((msg, index) => (
+              <View key={index} style={[
+                styles.chatMessage,
+                msg.type === 'system' && styles.systemMessage,
+                msg.type === 'reaction' && styles.reactionMessage
+              ]}>
+                <Text style={styles.chatText}>
+                  <Text style={[
+                    styles.chatUser, 
+                    msg.type === 'system' && styles.systemUser,
+                    msg.isOwn && styles.ownUser
+                  ]}>
+                    {msg.user}: 
+                  </Text>
+                  {msg.text}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* FEATURE: Interaction buttons */}
-        <View style={styles.interactionButtons}>
+        {/* FEATURE: Viewer interaction buttons */}
+        <View style={styles.viewerControls}>
           <TouchableOpacity 
-            style={styles.likeButton}
-            onPress={() => this.sendMessage('❤️')}
+            style={styles.reactionButton}
+            onPress={() => this.sendQuickReaction('❤️')}
           >
-            <Text style={styles.interactionText}>❤️</Text>
+            <Text style={styles.reactionText}>❤️</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.commentButton}
-            onPress={() => this.sendMessage('👏 Tuyệt vời!')}
+            style={styles.reactionButton}
+            onPress={() => this.sendQuickReaction('👏')}
           >
-            <Text style={styles.interactionText}>💬</Text>
+            <Text style={styles.reactionText}>👏</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.reactionButton}
+            onPress={() => this.sendQuickReaction('🔥')}
+          >
+            <Text style={styles.reactionText}>🔥</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.reactionButton}
+            onPress={() => this.sendQuickReaction('😍')}
+          >
+            <Text style={styles.reactionText}>😍</Text>
           </TouchableOpacity>
         </View>
+
+        {/* FEATURE: Chat input */}
+        {this.state.showChatInput && (
+          <View style={styles.chatInputContainer}>
+            <TextInput
+              ref={this.chatInputRef}
+              style={styles.chatInput}
+              placeholder="Nhập tin nhắn..."
+              placeholderTextColor={Colors.disabled}
+              value={this.state.chatInput}
+              onChangeText={(text) => this.setState({ chatInput: text })}
+              onSubmitEditing={() => this.sendMessage()}
+              returnKeyType="send"
+            />
+            <TouchableOpacity 
+              style={styles.sendButton}
+              onPress={() => this.sendMessage()}
+            >
+              <Text style={styles.sendButtonText}>📤</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* FEATURE: Chat toggle button */}
+        <TouchableOpacity 
+          style={styles.chatToggleButton}
+          onPress={this.toggleChatInput}
+        >
+          <Text style={styles.chatToggleText}>💬</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 
   // UI/UX: Render giao diện chính
@@ -556,9 +842,10 @@ const styles = StyleSheet.create({
   // Chat Overlay Styles
   chatOverlay: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 200,
     left: 20,
-    right: 100,
+    right: 80,
+    maxHeight: 200,
   },
   chatMessage: {
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -566,6 +853,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 15,
     marginBottom: 5,
+    maxWidth: '90%',
+  },
+  systemMessage: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  reactionMessage: {
+    backgroundColor: 'rgba(255,0,80,0.3)',
+    alignSelf: 'flex-end',
   },
   chatText: {
     color: Colors.textLight,
@@ -575,31 +870,118 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.secondary,
   },
+  systemUser: {
+    color: Colors.warning,
+  },
+  ownUser: {
+    color: Colors.primary,
+  },
   
-  // Interaction Buttons Styles
-  interactionButtons: {
+  // Broadcaster Controls Styles
+  broadcasterControls: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+  },
+  primaryControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  controlButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  disabledButton: {
+    backgroundColor: 'rgba(255,0,0,0.3)',
+    borderColor: Colors.error,
+  },
+  activeButton: {
+    backgroundColor: 'rgba(37,244,238,0.3)',
+    borderColor: Colors.secondary,
+  },
+  controlIcon: {
+    fontSize: 20,
+  },
+  
+  // Viewer Controls Styles
+  viewerControls: {
     position: 'absolute',
     right: 20,
-    bottom: 150,
+    bottom: 200,
     gap: 15,
   },
-  likeButton: {
+  reactionButton: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     width: 50,
     height: 50,
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
-  commentButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  interactionText: {
+  reactionText: {
     fontSize: 24,
+  },
+  
+  // Chat Input Styles
+  chatInputContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  chatInput: {
+    flex: 1,
+    color: Colors.textLight,
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginRight: 10,
+  },
+  sendButton: {
+    backgroundColor: Colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    fontSize: 18,
+  },
+  chatToggleButton: {
+    position: 'absolute',
+    bottom: 120,
+    right: 20,
+    backgroundColor: 'rgba(37,244,238,0.8)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+  },
+  chatToggleText: {
+    fontSize: 20,
   },
 });
