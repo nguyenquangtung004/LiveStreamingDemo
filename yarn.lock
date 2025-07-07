@@ -2072,16 +2072,6 @@
   resolved "https://registry.yarnpkg.com/@zegocloud/zego-effects-reactnative/-/zego-effects-reactnative-2.2.1.tgz#0b0119ac609c8fa030fee5a79ab367a27e69d128"
   integrity sha512-2p1IyHsJuQ/tqdikF0hoUnbfEZEwDEIebb73dGbgrXiRTZ9GL8NIhMBR99dP/6xsZKFD8b1zHt71lWerx0sNiA==
 
-"@zegocloud/zego-uikit-prebuilt-live-streaming-rn@^2.5.8":
-  version "2.5.8"
-  resolved "https://registry.yarnpkg.com/@zegocloud/zego-uikit-prebuilt-live-streaming-rn/-/zego-uikit-prebuilt-live-streaming-rn-2.5.8.tgz#6df0357e1d3915b9db285dc53d9d9489145aa2e2"
-  integrity sha512-ekByTcgdc07qkfVzbCV82UIdXZ77IexSP5vGuVZE/yD3zLnkistFB1faPk+pPUojuuDKO7gB97mMcAFiuKtJxA==
-
-"@zegocloud/zego-uikit-rn@^2.17.11":
-  version "2.17.11"
-  resolved "https://registry.yarnpkg.com/@zegocloud/zego-uikit-rn/-/zego-uikit-rn-2.17.11.tgz#27c0ee04288225a38b4beabce25fafe04dd3d769"
-  integrity sha512-0fo7KYiwBOfTLuLdjEBqPE4Eb/quSPzbCrC4jJlbwnHavDD6hIIFCy/3doD1AGQ/q/m2gZFtVw4NeCpPoJwIaw==
-
 abort-controller@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/abort-controller/-/abort-controller-3.0.0.tgz#eaf54d53b62bae4138e809ca225c8439a6efb392"

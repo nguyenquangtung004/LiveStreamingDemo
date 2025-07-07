@@ -14,8 +14,6 @@
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.21",
     "@zegocloud/zego-effects-reactnative": "^2.2.1",
-    "@zegocloud/zego-uikit-prebuilt-live-streaming-rn": "^2.5.8",
-    "@zegocloud/zego-uikit-rn": "^2.17.11",
     "react": "19.1.0",
     "react-delegate-component": "^1.0.0",
     "react-native": "0.80.1",

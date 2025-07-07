@@ -117,3 +117,26 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+configurations.all {
+    resolutionStrategy {
+        // DEPENDENCY: Force sử dụng version cụ thể để tránh conflict
+        force 'im.zego:effects-sdk:2.2.1.1573'
+        force 'im.zego:uikitreport:0.5.1'
+        
+        // FIXME: Exclude các module gây xung đột
+        eachDependency { details ->
+            if (details.requested.group == 'im.zego') {
+                if (details.requested.name == 'uikitreport') {
+                    details.useVersion '0.5.1'
+                }
+                if (details.requested.name == 'effects-sdk') {
+                    details.useVersion '2.2.1.1573'
+                }
+            }
+        }
+    }
+    
+    // BUG: Loại bỏ duplicate classes
+    exclude group: 'im.zego', module: 'connection'
+}
