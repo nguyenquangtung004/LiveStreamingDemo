@@ -1,0 +1,27 @@
+// FEATURE: File index để export tất cả các components và services
+
+// NOTE: Export main app component
+export { default } from './tiktok_live_stream_app';
+export { default as TikTokLiveStreamApp } from './tiktok_live_stream_app';
+
+// DEPENDENCY: Export các services
+export { default as ZegoService } from './Services/ZegoService';
+export { default as EffectsService } from './Services/EffectsService';
+export { default as ChatManager } from './chat_message';
+
+// UI/UX: Export các screen components
+export { default as HomeScreen } from './home_screen';
+export { default as BroadcasterScreen } from './broadcaster_screen';
+export { default as ViewerScreen } from './viewer_screen';
+
+// CONFIG: Export constants và utils
+export * from './contants';
+export * from './untils';
+
+// NOTE: Export styles nếu cần sử dụng ở component khác
+export { default as styles, Colors } from './TikTokLiveStreamStyles';
+
+// FEATURE: Export các hooks custom nếu có
+// export { useChat } from './hooks/useChat';
+// export { useBeautyFilters } from './hooks/useBeautyFilters';
+// export { useStreamState } from './hooks/useStreamState';
