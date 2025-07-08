@@ -18,7 +18,6 @@ import {
   Keyboard,
   KeyboardAvoidingView
 } from 'react-native';
-import styles, { Colors } from './TikTokLiveStreamStyles'; 
 
 // NOTE: Import ZegoExpressEngine và các components cần thiết
 import ZegoExpressEngine, {
@@ -27,8 +26,16 @@ import ZegoExpressEngine, {
   ZegoAudioConfig, 
   ZegoAudioConfigPreset, 
   ZegoMixerInputContentType, 
-  ZegoScenario
+  ZegoScenario,
+  ZegoPublishChannel,
+  ZegoVideoConfig,
+  ZegoVideoConfigPreset
 } from 'zego-express-engine-reactnative';
+import ZegoEffects from '@zegocloud/zego-effects-reactnative';
+
+import styles, { Colors } from './TikTokLiveStreamStyles';
+
+// FEATURE: Import ZegoEffects SDK cho AI Effects (với error handling)
 
 // CONFIG: Cấu hình quyền cho Android
 const granted = (Platform.OS == 'android' ? PermissionsAndroid.check(
@@ -39,8 +46,6 @@ const granted = (Platform.OS == 'android' ? PermissionsAndroid.check(
 const appID = 1359832122;
 const appSign = '5b11b51bd04571706a6ce9d42a7758de13dee90cb6959b09dc46076d1c068c30';
 
-// UI/UX: Lấy kích thước màn hình
-const { width, height } = Dimensions.get('window');
 export default class TikTokLiveStreamApp extends Component {
 
   constructor(props) {
@@ -67,7 +72,15 @@ export default class TikTokLiveStreamApp extends Component {
       
       // FEATURE: Filters và Effects
       isBeautyFilterOn: false,
-      currentFilter: 'none'
+      currentFilter: 'none',
+      
+      // FEATURE: ZegoEffects instance
+      zegoEffects: null,
+      beautyIntensity: 80,
+      smoothIntensity: 70,
+      whiteningIntensity: 60,
+      faceLiftingIntensity: 50,
+      showBeautyPanel: false
     };
     
     // FIXME: Sử dụng createRef() cho video views
@@ -93,6 +106,53 @@ export default class TikTokLiveStreamApp extends Component {
     }, () => {
       this.setupBroadcaster();
     });
+  };
+
+  // FEATURE: Khởi tạo ZegoEffects SDK
+  initializeEffects = async () => {
+    try {
+      // LOGGING: Log phiên bản Effects SDK
+       console.log(`Effects version=${await ZegoEffects.getVersion()}`);
+
+      // SECURITY: Lấy thông tin xác thực từ SDK
+      const authInfo = await ZegoEffects.getAuthInfo(appSign);
+      console.log('Auth info obtained:', authInfo);
+
+      // CONFIG: Phiên bản mới không cần license
+      // NOTE: Theo thông tin từ bên phát triển, phiên bản mới nhất không cần license
+      const license = ""; // Để trống theo hướng dẫn mới
+
+      // FEATURE: Tạo instance ZegoEffects (không cần license)
+      const effects = new ZegoEffects(license);
+
+      // NOTE: Lắng nghe lỗi từ Effects SDK
+      effects.on('error', (errorCode, desc) => {
+        console.error(`Effects Error - Code: ${errorCode}, Description: ${desc}`);
+        // OPTIMIZE: Chỉ hiện alert cho lỗi nghiêm trọng
+        if (errorCode !== 0) {
+          Alert.alert('Thông báo Effects', `Mã: ${errorCode}\nMô tả: ${desc}`);
+        }
+      });
+
+      // FEATURE: Enable image processing
+      effects.enableImageProcessing(true);
+  effects.enableSmooth(true);
+  effects.setSmoothParam({ intensity: 100 });
+
+  // Enable face lifting effect to create a smaller facial appearance
+  effects.enableFaceLifting(true);
+  effects.setFaceLiftingParam({ intensity: 100 });
+      // NOTE: Lưu instance để sử dụng sau
+      this.setState({ zegoEffects: effects });
+
+      console.log('ZegoEffects initialized successfully without license');
+      return effects;
+    } catch (error) {
+      console.error('Lỗi khởi tạo Effects SDK:', error);
+      // OPTIMIZE: Thông báo lỗi nhẹ nhàng hơn
+      console.log('Tiếp tục chạy ứng dụng mà không có Effects');
+      return null;
+    }
   };
 
   // FUNCTIONALITY: Tham gia phòng để xem stream
@@ -173,8 +233,14 @@ export default class TikTokLiveStreamApp extends Component {
       
       const engine = await ZegoExpressEngine.createEngineWithProfile(profile);
       
+      // FEATURE: Enable custom video processing cho Effects
+      await engine.enableCustomVideoProcessing(true, {}, ZegoPublishChannel.Main);
+      
       // NOTE: Đăng ký các event listeners
       this.setupEventListeners();
+      
+      // FEATURE: Khởi tạo ZegoEffects SDK
+      await this.initializeEffects();
       
       // SECURITY: Yêu cầu quyền cho Android
       if(Platform.OS == 'android') {
@@ -318,14 +384,108 @@ export default class TikTokLiveStreamApp extends Component {
     });
   };
 
-  // FUNCTIONALITY: Bật/tắt beauty filter
-  toggleBeautyFilter = () => {
+  // FUNCTIONALITY: Bật/tắt beauty filter với ZegoEffects
+  toggleBeautyFilter = async () => {
+    if (!this.state.zegoEffects) {
+      // OPTIMIZE: Thử khởi tạo lại Effects nếu chưa có
+      console.log('Effects chưa khởi tạo, đang thử khởi tạo lại...');
+      const effects = await this.initializeEffects();
+      if (!effects) {
+        Alert.alert('Thông báo', 'Tính năng làm đẹp chưa sẵn sàng. Vui lòng thử lại sau.');
+        return;
+      }
+    }
+
     const newState = !this.state.isBeautyFilterOn;
-    // TODO: Implement beauty filter với ZegoExpressEngine
-    this.setState({ isBeautyFilterOn: newState });
     
-    const message = newState ? '✨ Đã bật làm đẹp' : '✨ Đã tắt làm đẹp';
-    this.sendSystemMessage(message);
+    try {
+      if (newState) {
+        // FEATURE: Bật các effect làm đẹp
+        await this.enableBeautyEffects();
+        this.sendSystemMessage('✨ Đã bật làm đẹp');
+      } else {
+        // FEATURE: Tắt các effect làm đẹp
+        await this.disableBeautyEffects();
+        this.sendSystemMessage('✨ Đã tắt làm đẹp');
+      }
+      
+      this.setState({ isBeautyFilterOn: newState });
+    } catch (error) {
+      console.error('Lỗi toggle beauty filter:', error);
+      Alert.alert('Thông báo', 'Không thể thay đổi beauty filter. Đang chạy ở chế độ cơ bản.');
+    }
+  };
+
+  // FEATURE: Bật các hiệu ứng làm đẹp
+  enableBeautyEffects = async () => {
+    const { zegoEffects, smoothIntensity, whiteningIntensity, faceLiftingIntensity } = this.state;
+    
+    try {
+      // FEATURE: Bật và cấu hình làm mịn da
+      await zegoEffects.enableSmooth(true);
+      await zegoEffects.setSmoothParam({ intensity: smoothIntensity });
+      
+      // FEATURE: Bật và cấu hình làm trắng da
+      await zegoEffects.enableWhitening(true);
+      await zegoEffects.setWhiteningParam({ intensity: whiteningIntensity });
+      
+      // FEATURE: Bật và cấu hình thu gọn khuôn mặt
+      await zegoEffects.enableFaceLifting(true);
+      await zegoEffects.setFaceLiftingParam({ intensity: faceLiftingIntensity });
+      
+      console.log('Beauty effects enabled successfully');
+    } catch (error) {
+      console.error('Lỗi enable beauty effects:', error);
+      throw error;
+    }
+  };
+
+  // FEATURE: Tắt các hiệu ứng làm đẹp
+  disableBeautyEffects = async () => {
+    const { zegoEffects } = this.state;
+    
+    try {
+      // FEATURE: Tắt tất cả effects
+      await zegoEffects.enableSmooth(false);
+      await zegoEffects.enableWhitening(false);
+      await zegoEffects.enableFaceLifting(false);
+      
+      console.log('Beauty effects disabled successfully');
+    } catch (error) {
+      console.error('Lỗi disable beauty effects:', error);
+      throw error;
+    }
+  };
+
+  // FEATURE: Điều chỉnh cường độ làm đẹp
+  adjustBeautyIntensity = async (effectType, intensity) => {
+    if (!this.state.zegoEffects || !this.state.isBeautyFilterOn) {
+      console.log('Effects không khả dụng hoặc chưa bật');
+      return;
+    }
+
+    try {
+      switch (effectType) {
+        case 'smooth':
+          await this.state.zegoEffects.setSmoothParam({ intensity });
+          this.setState({ smoothIntensity: intensity });
+          break;
+        case 'whitening':
+          await this.state.zegoEffects.setWhiteningParam({ intensity });
+          this.setState({ whiteningIntensity: intensity });
+          break;
+        case 'faceLifting':
+          await this.state.zegoEffects.setFaceLiftingParam({ intensity });
+          this.setState({ faceLiftingIntensity: intensity });
+          break;
+      }
+      
+      console.log(`${effectType} intensity adjusted to ${intensity}`);
+    } catch (error) {
+      console.error(`Lỗi điều chỉnh ${effectType}:`, error);
+      // OPTIMIZE: Không hiện alert cho lỗi nhỏ, chỉ log
+      console.log('Tiếp tục với cài đặt mặc định');
+    }
   };
 
   // FUNCTIONALITY: Gửi reaction nhanh
@@ -383,6 +543,17 @@ export default class TikTokLiveStreamApp extends Component {
 
   // FUNCTIONALITY: Cleanup khi component unmount
   componentWillUnmount() {
+    // FEATURE: Cleanup ZegoEffects
+    if (this.state.zegoEffects) {
+      try {
+        this.state.zegoEffects.enableImageProcessing(false);
+        console.log('ZegoEffects cleaned up');
+      } catch (error) {
+        console.error('Lỗi cleanup ZegoEffects:', error);
+      }
+    }
+
+    // NOTE: Cleanup ZegoExpressEngine
     if(ZegoExpressEngine.instance()) {
       ZegoExpressEngine.destroyEngine();
     }
@@ -478,6 +649,16 @@ export default class TikTokLiveStreamApp extends Component {
         >
           <Text style={styles.controlIcon}>✨</Text>
         </TouchableOpacity>
+
+        {/* FEATURE: Beauty settings panel khi beauty filter đang bật */}
+        {this.state.isBeautyFilterOn && (
+          <TouchableOpacity 
+            style={styles.controlButton}
+            onPress={() => this.setState({ showBeautyPanel: !this.state.showBeautyPanel })}
+          >
+            <Text style={styles.controlIcon}>⚙️</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -562,6 +743,77 @@ export default class TikTokLiveStreamApp extends Component {
         >
           <Text style={styles.chatToggleText}>💬</Text>
         </TouchableOpacity>
+
+        {/* FEATURE: Beauty settings panel */}
+        {this.state.showBeautyPanel && this.state.isBeautyFilterOn && (
+          <View style={styles.beautyPanel}>
+            <Text style={styles.beautyPanelTitle}>Cài đặt làm đẹp</Text>
+            
+            <View style={styles.beautySliderContainer}>
+              <Text style={styles.beautySliderLabel}>Làm mịn da: {this.state.smoothIntensity}%</Text>
+              <View style={styles.beautySlider}>
+                <TouchableOpacity 
+                  style={styles.sliderButton}
+                  onPress={() => this.adjustBeautyIntensity('smooth', Math.max(0, this.state.smoothIntensity - 10))}
+                >
+                  <Text style={styles.sliderButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.sliderValue}>{this.state.smoothIntensity}</Text>
+                <TouchableOpacity 
+                  style={styles.sliderButton}
+                  onPress={() => this.adjustBeautyIntensity('smooth', Math.min(100, this.state.smoothIntensity + 10))}
+                >
+                  <Text style={styles.sliderButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.beautySliderContainer}>
+              <Text style={styles.beautySliderLabel}>Làm trắng da: {this.state.whiteningIntensity}%</Text>
+              <View style={styles.beautySlider}>
+                <TouchableOpacity 
+                  style={styles.sliderButton}
+                  onPress={() => this.adjustBeautyIntensity('whitening', Math.max(0, this.state.whiteningIntensity - 10))}
+                >
+                  <Text style={styles.sliderButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.sliderValue}>{this.state.whiteningIntensity}</Text>
+                <TouchableOpacity 
+                  style={styles.sliderButton}
+                  onPress={() => this.adjustBeautyIntensity('whitening', Math.min(100, this.state.whiteningIntensity + 10))}
+                >
+                  <Text style={styles.sliderButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.beautySliderContainer}>
+              <Text style={styles.beautySliderLabel}>Thu gọn mặt: {this.state.faceLiftingIntensity}%</Text>
+              <View style={styles.beautySlider}>
+                <TouchableOpacity 
+                  style={styles.sliderButton}
+                  onPress={() => this.adjustBeautyIntensity('faceLifting', Math.max(0, this.state.faceLiftingIntensity - 10))}
+                >
+                  <Text style={styles.sliderButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.sliderValue}>{this.state.faceLiftingIntensity}</Text>
+                <TouchableOpacity 
+                  style={styles.sliderButton}
+                  onPress={() => this.adjustBeautyIntensity('faceLifting', Math.min(100, this.state.faceLiftingIntensity + 10))}
+                >
+                  <Text style={styles.sliderButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.beautyCloseButton}
+              onPress={() => this.setState({ showBeautyPanel: false })}
+            >
+              <Text style={styles.beautyCloseButtonText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -691,4 +943,3 @@ export default class TikTokLiveStreamApp extends Component {
     );
   }
 }
-
