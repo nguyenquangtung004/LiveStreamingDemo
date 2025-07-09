@@ -4,30 +4,44 @@ import { ZEGO_CONFIG, BEAUTY_CONFIG } from '../contants';
 
 class EffectsService {
   constructor() {
-    this.effects = null;
-    this.isInitialized = false;
-    this.isEffectsEnabled = false;
+    this.effects;
+    this.isInitialized;
+    this.isEffectsEnabled ;
+    this.engine = null;
+  }
+
+   // FEATURE: Set engine từ ZegoService (đã có license sẵn)
+  setEngine(engine) {
+    this.engine = engine;
+    console.log('EffectsService đã nhận engine từ ZegoService:$engine', engine);
   }
 
   // FEATURE: Khởi tạo ZegoEffects SDK
   async initializeEffects() {
     try {
-      if (this.isInitialized) {
-        return this.effects;
+  //     if (!this.engine) {
+  //   throw new Error('Engine chưa được set');
+  // }
+    // FEATURE: Lấy appID và appSign từ engine (đã được ZegoService chuẩn bị)
+      // const appID = this.engine.effectsAppID;
+      // const appSign = this.engine.effectsAppSign;
+      const appID = 1359832122; // Thay thế bằng appID thực tế 
+      const appSign = "5b11b51bd04571706a6ce9d42a7758de13dee90cb6959b09dc46076d1c068c30"; // Thay thế bằng appSign thực tế
+      if (!appID || !appSign) {
+        throw new Error('Engine chưa có thông tin Effects (appID hoặc appSign). Đảm bảo ZegoService đã khởi tạo thành công');
       }
 
       // LOGGING: Log phiên bản Effects SDK
-      console.log(`Effects version=${await ZegoEffects.getVersion()}`);
+      // console.log(`Effects version=${await ZegoEffects.getVersion()}`);
 
       // SECURITY: Lấy thông tin xác thực từ SDK
-      const authInfo = await ZegoEffects.getAuthInfo(ZEGO_CONFIG.appSign);
-      console.log('Auth info obtained:', authInfo);
+      // const authInfo = await ZegoEffects.getAuthInfo(ZEGO_CONFIG.appSign);
+      // console.log('Auth info obtained:', authInfo);
 
-      // CONFIG: Phiên bản mới không cần license
-      const license = ""; // Để trống theo hướng dẫn mới
 
-      // FEATURE: Tạo instance ZegoEffects
-      this.effects = new ZegoEffects(license);
+     // FEATURE: Tạo instance ZegoEffects với appID và appSign từ engine (theo cách mới)
+      console.log('Đang khởi tạo ZegoEffects với appID và appSign từ engine...');
+      this.effects = new ZegoEffects(appID, appSign);
 
       // NOTE: Lắng nghe lỗi từ Effects SDK
       this.effects.on('error', (errorCode, desc) => {
@@ -154,6 +168,8 @@ class EffectsService {
   async toggleBeautyEffects(settings = {}) {
     if (!this.isInitialized) {
       const result = await this.initializeEffects();
+      console.log('Effects SDK initialized:', result);
+      
       if (!result) {
         return { success: false, message: 'Không thể khởi tạo Effects SDK' };
       }

@@ -111,7 +111,7 @@ export default class TikTokLiveStreamApp extends Component {
       
       // NOTE: Thiết lập event listeners
       this.setupZegoEventListeners();
-      
+      EffectsService.setEngine(ZegoService.getEngine());
       // NOTE: Khởi tạo Effects Service
       await EffectsService.initializeEffects();
 

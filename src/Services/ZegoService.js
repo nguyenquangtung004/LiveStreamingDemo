@@ -17,6 +17,7 @@ class ZegoService {
     this.engine = null;
     this.isInitialized = false;
     this.eventCallbacks = {};
+
   }
 
   // FUNCTIONALITY: Khởi tạo Zego Engine
@@ -25,16 +26,23 @@ class ZegoService {
       if (this.isInitialized) {
         return this.engine;
       }
-
+      console.log('Đang khởi tạo Zego Engine...');
       // CONFIG: Cấu hình profile cho engine
       const profile = {
         appID: ZEGO_CONFIG.appID,
         appSign: ZEGO_CONFIG.appSign,
         scenario: ZegoScenario.General
       };
-
+      // FEATURE: Tạo Engine
       this.engine = await ZegoExpressEngine.createEngineWithProfile(profile);
-      
+      // FEATURE: Gắn thông tin Effects vào engine để EffectsService sử dụng
+      this.engine.effectsAppID = ZEGO_CONFIG.appID;
+      this.engine.effectsAppSign = ZEGO_CONFIG.appSign;
+      this.engine.hasEffectsSupport = true;
+      console.log('Effects info đã được gắn vào engine:', {
+        appID: this.engine.effectsAppID,
+        appSign: this.engine.effectsAppSign?.substring(0, 10) + '...' // Chỉ log một phần để bảo mật
+      });
       // FEATURE: Enable custom video processing cho Effects
       await this.engine.enableCustomVideoProcessing(true, {}, ZegoPublishChannel.Main);
       
@@ -50,7 +58,19 @@ class ZegoService {
       throw error;
     }
   }
-
+   // FUNCTIONALITY: Lấy thông tin Effects từ engine
+  getEffectsInfo() {
+    return {
+      hasEffectsSupport: this.engine ? this.engine.hasEffectsSupport : false,
+      appID: this.engine ? this.engine.effectsAppID : null,
+      appSign: this.engine ? this.engine.effectsAppSign : null,
+      isEngineReady: this.isInitialized && this.engine !== null
+    };
+  }
+  // FUNCTIONALITY: Kiểm tra xem có hỗ trợ Effects không
+  hasEffectsSupport() {
+    return this.engine && this.engine.hasEffectsSupport;
+  }
   // SECURITY: Yêu cầu quyền cho Android
   async requestAndroidPermissions() {
     try {
