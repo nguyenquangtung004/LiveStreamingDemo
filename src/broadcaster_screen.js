@@ -15,6 +15,9 @@ import { ZegoTextureView } from 'zego-express-engine-reactnative';
 import styles, { Colors } from './TikTokLiveStreamStyles';
 import { MESSAGE_TYPES } from './contants';
 
+// FEATURE: Import BeautyPanel từ Effects module
+import BeautyPanel from './Effects/BeautyPanel';
+
 // UI/UX: Component màn hình phát sóng
 const BroadcasterScreen = ({ 
   roomID,
@@ -37,7 +40,10 @@ const BroadcasterScreen = ({
   onSendMessage,
   onAdjustBeauty,
   onEndStream,
-  broadcasterViewRef
+  broadcasterViewRef,
+  // FEATURE: Callbacks mới cho BeautyPanel
+  onBeautyEffectSelected,
+  onBeautyIntensityChanged
 }) => {
 
   const chatInputRef = useRef(null);
@@ -85,7 +91,7 @@ const BroadcasterScreen = ({
           <Text style={styles.controlIcon}>🔄</Text>
         </TouchableOpacity>
 
-        {/* FEATURE: Beauty filter */}
+        {/* FEATURE: Beauty filter toggle */}
         <TouchableOpacity 
           style={[styles.controlButton, isBeautyFilterOn && styles.activeButton]}
           onPress={onToggleBeautyFilter}
@@ -94,10 +100,10 @@ const BroadcasterScreen = ({
           <Text style={styles.controlIcon}>✨</Text>
         </TouchableOpacity>
 
-        {/* FEATURE: Beauty settings */}
+        {/* FEATURE: Beauty settings panel toggle */}
         {isBeautyFilterOn && (
           <TouchableOpacity 
-            style={styles.controlButton}
+            style={[styles.controlButton, showBeautyPanel && styles.activeButton]}
             onPress={onToggleBeautyPanel}
             activeOpacity={0.7}
           >
@@ -108,8 +114,47 @@ const BroadcasterScreen = ({
     </View>
   );
 
-  // FEATURE: Render beauty settings panel
+  // FEATURE: Render BeautyPanel mới từ Effects module
   const renderBeautyPanel = () => {
+    if (!showBeautyPanel || !isBeautyFilterOn) return null;
+
+    return (
+      <View style={styles.beautyPanelContainer}>
+        {/* FEATURE: Header với nút đóng */}
+        <View style={styles.beautyPanelHeader}>
+          <Text style={styles.beautyPanelHeaderTitle}>🎨 Beauty Effects</Text>
+          <TouchableOpacity 
+            style={styles.beautyPanelCloseButton}
+            onPress={onToggleBeautyPanel}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.beautyPanelCloseText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* FEATURE: BeautyPanel component */}
+        <BeautyPanel
+          onSelected={(groupItem, beautyItem) => {
+            console.log('Beauty effect selected:', groupItem.name, '->', beautyItem.name);
+            // FEATURE: Gọi callback để áp dụng effect
+            if (onBeautyEffectSelected) {
+              onBeautyEffectSelected(groupItem, beautyItem);
+            }
+          }}
+          onSliderEnd={(groupItem, beautyItem, currentIntensity) => {
+            console.log('Beauty intensity changed:', beautyItem.name, 'intensity:', currentIntensity);
+            // FEATURE: Gọi callback để thay đổi cường độ
+            if (onBeautyIntensityChanged) {
+              onBeautyIntensityChanged(groupItem, beautyItem, currentIntensity);
+            }
+          }}
+        />
+      </View>
+    );
+  };
+
+  // FEATURE: Render beauty settings panel cũ (backup/fallback)
+  const renderLegacyBeautyPanel = () => {
     if (!showBeautyPanel || !isBeautyFilterOn) return null;
 
     return (
@@ -309,8 +354,11 @@ const BroadcasterScreen = ({
           <Text style={styles.chatToggleText}>💬</Text>
         </TouchableOpacity>
 
-        {/* FEATURE: Beauty settings panel */}
+        {/* FEATURE: NEW BeautyPanel from Effects module */}
         {renderBeautyPanel()}
+
+        {/* NOTE: Legacy beauty panel as fallback */}
+        {/* {renderLegacyBeautyPanel()} */}
       </View>
     </KeyboardAvoidingView>
   );

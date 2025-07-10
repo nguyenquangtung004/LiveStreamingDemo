@@ -21,7 +21,9 @@ export * from './untils';
 // NOTE: Export styles nếu cần sử dụng ở component khác
 export { default as styles, Colors } from './TikTokLiveStreamStyles';
 
-// FEATURE: Export các hooks custom nếu có
-// export { useChat } from './hooks/useChat';
-// export { useBeautyFilters } from './hooks/useBeautyFilters';
-// export { useStreamState } from './hooks/useStreamState';
+// NOTE: Export main components
+export { default as BeautyPanel } from '../src/Effects/BeautyPanel';
+export { default as EffectsHelper } from './Services/EffectsHelper';
+
+// CONFIG: Export configuration và types
+export { default as EffectsConfig, BeautyType, BeautyItem } from './Effects/EffectConfig';

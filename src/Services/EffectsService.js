@@ -1,58 +1,36 @@
-// DEPENDENCY: Import ZegoEffects SDK
+// DEPENDENCY: Import ZegoEffects SDK và EffectsHelper
 import ZegoEffects from '@zegocloud/zego-effects-reactnative';
+import EffectsHelper from './EffectsHelper';
 import { ZEGO_CONFIG, BEAUTY_CONFIG } from '../contants';
 
 class EffectsService {
   constructor() {
-    this.effects;
-    this.isInitialized;
-    this.isEffectsEnabled ;
+    this.effects = null;
+    this.isInitialized = false;
+    this.isEffectsEnabled = false;
     this.engine = null;
   }
 
-   // FEATURE: Set engine từ ZegoService (đã có license sẵn)
+  // FEATURE: Set engine từ ZegoService
   setEngine(engine) {
     this.engine = engine;
-    console.log('EffectsService đã nhận engine từ ZegoService:$engine', engine);
+    console.log('EffectsService đã nhận engine từ ZegoService');
   }
 
-  // FEATURE: Khởi tạo ZegoEffects SDK
+  // FEATURE: Khởi tạo ZegoEffects SDK với EffectsHelper mới
   async initializeEffects() {
     try {
-  //     if (!this.engine) {
-  //   throw new Error('Engine chưa được set');
-  // }
-    // FEATURE: Lấy appID và appSign từ engine (đã được ZegoService chuẩn bị)
-      // const appID = this.engine.effectsAppID;
-      // const appSign = this.engine.effectsAppSign;
-      const appID = 1359832122; // Thay thế bằng appID thực tế 
-      const appSign = "5b11b51bd04571706a6ce9d42a7758de13dee90cb6959b09dc46076d1c068c30"; // Thay thế bằng appSign thực tế
-      if (!appID || !appSign) {
-        throw new Error('Engine chưa có thông tin Effects (appID hoặc appSign). Đảm bảo ZegoService đã khởi tạo thành công');
+      console.log('Đang khởi tạo ZegoEffects với EffectsHelper...');
+      
+      // FEATURE: Sử dụng EffectsHelper để khởi tạo
+      this.effects = await EffectsHelper.initEffects();
+      
+      if (!this.effects) {
+        throw new Error('Không thể khởi tạo Effects SDK');
       }
 
-      // LOGGING: Log phiên bản Effects SDK
-      // console.log(`Effects version=${await ZegoEffects.getVersion()}`);
-
-      // SECURITY: Lấy thông tin xác thực từ SDK
-      // const authInfo = await ZegoEffects.getAuthInfo(ZEGO_CONFIG.appSign);
-      // console.log('Auth info obtained:', authInfo);
-
-
-     // FEATURE: Tạo instance ZegoEffects với appID và appSign từ engine (theo cách mới)
-      console.log('Đang khởi tạo ZegoEffects với appID và appSign từ engine...');
-      this.effects = new ZegoEffects(appID, appSign);
-
-      // NOTE: Lắng nghe lỗi từ Effects SDK
-      this.effects.on('error', (errorCode, desc) => {
-        console.error(`Effects Error - Code: ${errorCode}, Description: ${desc}`);
-      });
-
-      // FEATURE: Enable image processing
-      await this.effects.enableImageProcessing(true);
-
       this.isInitialized = true;
-      console.log('ZegoEffects initialized successfully');
+      console.log('ZegoEffects initialized successfully with EffectsHelper');
       return this.effects;
     } catch (error) {
       console.error('Lỗi khởi tạo Effects SDK:', error);
@@ -60,7 +38,24 @@ class EffectsService {
     }
   }
 
-  // FEATURE: Bật tất cả beauty effects
+  // FEATURE: Áp dụng beauty effect thông qua EffectsHelper
+  async applyBeautyEffect(groupItem, beautyItem, intensity) {
+    if (!this.isInitialized || !EffectsHelper.isReady()) {
+      console.warn('Effects chưa được khởi tạo');
+      return false;
+    }
+
+    try {
+      await EffectsHelper.updateEffects(groupItem, beautyItem, intensity);
+      console.log(`Applied beauty effect: ${beautyItem.name} with intensity: ${intensity}`);
+      return true;
+    } catch (error) {
+      console.error('Lỗi áp dụng beauty effect:', error);
+      return false;
+    }
+  }
+
+  // FEATURE: Bật tất cả beauty effects (backward compatibility)
   async enableBeautyEffects(settings = {}) {
     if (!this.effects || !this.isInitialized) {
       console.log('Effects chưa được khởi tạo');
@@ -74,20 +69,32 @@ class EffectsService {
         faceLiftingIntensity = BEAUTY_CONFIG.defaultFaceLiftingIntensity
       } = settings;
 
-      // FEATURE: Bật và cấu hình làm mịn da
-      await this.effects.enableSmooth(true);
-      await this.effects.setSmoothParam({ intensity: smoothIntensity });
+      // FEATURE: Sử dụng EffectsHelper để áp dụng basic effects
+      const basicGroup = { type: 0, name: "Cơ bản" }; // BeautyType.Type_Group
+      
+      // NOTE: Áp dụng làm mịn da
+      await EffectsHelper.updateEffects(
+        basicGroup, 
+        { type: 3, name: "Làm mịn da" }, // BeautyType.Beauty_Face
+        smoothIntensity
+      );
 
-      // FEATURE: Bật và cấu hình làm trắng da
-      await this.effects.enableWhitening(true);
-      await this.effects.setWhiteningParam({ intensity: whiteningIntensity });
+      // NOTE: Áp dụng làm trắng da
+      await EffectsHelper.updateEffects(
+        basicGroup,
+        { type: 1, name: "Làm trắng da" }, // BeautyType.Face_Whitening
+        whiteningIntensity
+      );
 
-      // FEATURE: Bật và cấu hình thu gọn khuôn mặt
-      await this.effects.enableFaceLifting(true);
-      await this.effects.setFaceLiftingParam({ intensity: faceLiftingIntensity });
+      // NOTE: Áp dụng thu gọn mặt
+      await EffectsHelper.updateEffects(
+        basicGroup,
+        { type: 9, name: "Thu gọn mặt" }, // BeautyType.Face_Lifting
+        faceLiftingIntensity
+      );
 
       this.isEffectsEnabled = true;
-      console.log('Beauty effects enabled successfully');
+      console.log('Beauty effects enabled successfully với EffectsHelper');
       return true;
     } catch (error) {
       console.error('Lỗi enable beauty effects:', error);
@@ -102,10 +109,12 @@ class EffectsService {
     }
 
     try {
-      // FEATURE: Tắt tất cả effects
-      await this.effects.enableSmooth(false);
-      await this.effects.enableWhitening(false);
-      await this.effects.enableFaceLifting(false);
+      // NOTE: Tắt các effects cơ bản
+      const basicGroup = { type: 0, name: "Cơ bản" };
+      
+      await EffectsHelper.updateEffects(basicGroup, { type: 3, name: "Làm mịn da" }, 0);
+      await EffectsHelper.updateEffects(basicGroup, { type: 1, name: "Làm trắng da" }, 0);
+      await EffectsHelper.updateEffects(basicGroup, { type: 9, name: "Thu gọn mặt" }, 0);
 
       this.isEffectsEnabled = false;
       console.log('Beauty effects disabled successfully');
@@ -118,12 +127,15 @@ class EffectsService {
 
   // FEATURE: Điều chỉnh cường độ làm mịn da
   async setSmoothIntensity(intensity) {
-    if (!this.effects || !this.isEffectsEnabled) {
-      return false;
-    }
+    if (!this.isEffectsEnabled) return false;
 
     try {
-      await this.effects.setSmoothParam({ intensity });
+      const basicGroup = { type: 0, name: "Cơ bản" };
+      await EffectsHelper.updateEffects(
+        basicGroup,
+        { type: 3, name: "Làm mịn da" },
+        intensity
+      );
       console.log(`Smooth intensity set to ${intensity}`);
       return true;
     } catch (error) {
@@ -134,12 +146,15 @@ class EffectsService {
 
   // FEATURE: Điều chỉnh cường độ làm trắng da
   async setWhiteningIntensity(intensity) {
-    if (!this.effects || !this.isEffectsEnabled) {
-      return false;
-    }
+    if (!this.isEffectsEnabled) return false;
 
     try {
-      await this.effects.setWhiteningParam({ intensity });
+      const basicGroup = { type: 0, name: "Cơ bản" };
+      await EffectsHelper.updateEffects(
+        basicGroup,
+        { type: 1, name: "Làm trắng da" },
+        intensity
+      );
       console.log(`Whitening intensity set to ${intensity}`);
       return true;
     } catch (error) {
@@ -150,12 +165,15 @@ class EffectsService {
 
   // FEATURE: Điều chỉnh cường độ thu gọn mặt
   async setFaceLiftingIntensity(intensity) {
-    if (!this.effects || !this.isEffectsEnabled) {
-      return false;
-    }
+    if (!this.isEffectsEnabled) return false;
 
     try {
-      await this.effects.setFaceLiftingParam({ intensity });
+      const basicGroup = { type: 0, name: "Cơ bản" };
+      await EffectsHelper.updateEffects(
+        basicGroup,
+        { type: 9, name: "Thu gọn mặt" },
+        intensity
+      );
       console.log(`Face lifting intensity set to ${intensity}`);
       return true;
     } catch (error) {
@@ -168,7 +186,7 @@ class EffectsService {
   async toggleBeautyEffects(settings = {}) {
     if (!this.isInitialized) {
       const result = await this.initializeEffects();
-      console.log('Effects SDK initialized:', result);
+      console.log('Effects SDK initialized:', !!result);
       
       if (!result) {
         return { success: false, message: 'Không thể khởi tạo Effects SDK' };
@@ -191,7 +209,7 @@ class EffectsService {
 
   // FUNCTIONALITY: Kiểm tra trạng thái effects
   isEffectsReady() {
-    return this.isInitialized && this.effects !== null;
+    return this.isInitialized && EffectsHelper.isReady();
   }
 
   // FUNCTIONALITY: Kiểm tra trạng thái beauty effects
@@ -202,8 +220,8 @@ class EffectsService {
   // FUNCTIONALITY: Cleanup effects
   async cleanup() {
     try {
-      if (this.effects && this.isInitialized) {
-        await this.effects.enableImageProcessing(false);
+      if (this.isInitialized) {
+        await EffectsHelper.destroyEffects();
         this.effects = null;
         this.isInitialized = false;
         this.isEffectsEnabled = false;
@@ -216,7 +234,12 @@ class EffectsService {
 
   // FUNCTIONALITY: Lấy instance effects
   getEffects() {
-    return this.effects;
+    return EffectsHelper.getEffects();
+  }
+
+  // FEATURE: Lấy EffectsHelper instance
+  getEffectsHelper() {
+    return EffectsHelper;
   }
 }
 

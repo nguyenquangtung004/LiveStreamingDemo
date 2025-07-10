@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 // Lấy kích thước màn hình
 const { width, height } = Dimensions.get('window');
@@ -100,6 +100,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
+  // FEATURE: Footer styles (thêm mới)
+  footerContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    color: Colors.textLight,
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: 5,
+  },
+  versionText: {
+    color: Colors.primary,
+    fontSize: 10,
+    opacity: 0.8,
+  },
+  
   // Stream Screen Styles
   streamContainer: {
     flex: 1,
@@ -115,7 +132,6 @@ const styles = StyleSheet.create({
   },
   overlayTop: {
     position: 'absolute',
-    // eslint-disable-next-line no-undef
     top: Platform.OS === 'ios' ? 60 : 40, // Điều chỉnh cho tai thỏ
     left: 20,
     right: 20,
@@ -233,6 +249,121 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   
+  // FEATURE: Beauty Panel Styles - ⭐ THÊM MỚI ⭐
+  beautyPanel: {
+    position: 'absolute',
+    bottom: 120,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    borderRadius: 20,
+    padding: 15,
+    maxHeight: height * 0.6, // Tối đa 60% chiều cao màn hình
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  beautyPanelTitle: {
+    color: Colors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+    paddingBottom: 10,
+  },
+  beautySliderContainer: {
+    marginBottom: 20,
+  },
+  beautySliderLabel: {
+    color: Colors.textLight,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  beautySlider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  sliderButton: {
+    backgroundColor: Colors.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sliderButtonText: {
+    color: Colors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sliderValue: {
+    color: Colors.textLight,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginHorizontal: 20,
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  beautyCloseButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  beautyCloseButtonText: {
+    color: Colors.textLight,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  // FEATURE: Beauty Panel Container (cho BeautyPanel component)
+  beautyPanelContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.98)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 10,
+    maxHeight: height * 0.7, // 70% chiều cao màn hình
+    borderTopWidth: 2,
+    borderTopColor: Colors.primary,
+  },
+  beautyPanelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  beautyPanelHeaderTitle: {
+    color: Colors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  beautyPanelCloseButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,0,80,0.2)',
+    borderRadius: 15,
+  },
+  beautyPanelCloseText: {
+    color: Colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
   // Viewer Controls Styles
   viewerControls: {
     position: 'absolute',
@@ -250,6 +381,99 @@ const styles = StyleSheet.create({
   },
   reactionText: {
     fontSize: 24,
+  },
+  
+  // FEATURE: Extended reactions cho viewer (thêm mới)
+  extendedReactionsContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 15,
+    right: 15,
+  },
+  extendedReactions: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+  },
+  extendedReactionButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  extendedReactionText: {
+    fontSize: 20,
+  },
+  
+  // FEATURE: Viewer stats (thêm mới)
+  viewerStatsContainer: {
+    position: 'absolute',
+    top: 120,
+    right: 15,
+    gap: 10,
+  },
+  viewerStat: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  viewerStatIcon: {
+    fontSize: 14,
+  },
+  viewerStatText: {
+    color: Colors.textLight,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  
+  // FEATURE: Floating actions cho viewer (thêm mới)
+  floatingActions: {
+    position: 'absolute',
+    right: 15,
+    bottom: 380,
+    gap: 10,
+  },
+  floatingActionButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingActionText: {
+    fontSize: 18,
+  },
+  
+  // FEATURE: Stream quality indicator (thêm mới)
+  qualityIndicator: {
+    position: 'absolute',
+    top: 120,
+    left: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  qualityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.success,
+  },
+  qualityText: {
+    color: Colors.textLight,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   
   // Chat Input Styles

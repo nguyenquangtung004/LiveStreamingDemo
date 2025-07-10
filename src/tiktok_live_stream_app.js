@@ -111,8 +111,9 @@ export default class TikTokLiveStreamApp extends Component {
       
       // NOTE: Thiết lập event listeners
       this.setupZegoEventListeners();
+      
+      // FEATURE: Set engine cho EffectsService và khởi tạo
       EffectsService.setEngine(ZegoService.getEngine());
-      // NOTE: Khởi tạo Effects Service
       await EffectsService.initializeEffects();
 
       // NOTE: Đăng nhập vào phòng
@@ -250,7 +251,72 @@ export default class TikTokLiveStreamApp extends Component {
     }));
   };
 
-  // FEATURE: Điều chỉnh cường độ beauty effects
+  // FEATURE: Xử lý khi chọn beauty effect từ BeautyPanel
+  handleBeautyEffectSelected = async (groupItem, beautyItem) => {
+    try {
+      console.log('Applying beauty effect:', groupItem.name, '->', beautyItem.name);
+      
+      // FEATURE: Sử dụng EffectsHelper để áp dụng effect
+      const effectsHelper = EffectsService.getEffectsHelper();
+      if (effectsHelper && effectsHelper.isReady()) {
+        const intensity = beautyItem.intensity || groupItem.intensity || 50;
+        await effectsHelper.updateEffects(groupItem, beautyItem, intensity);
+        
+        // NOTE: Thêm system message
+        ChatManager.addSystemMessage(`✨ Đã áp dụng: ${beautyItem.name}`);
+      } else {
+        console.warn('EffectsHelper not ready');
+        Alert.alert('Thông báo', 'Effects chưa sẵn sàng');
+      }
+    } catch (error) {
+      console.error('Error applying beauty effect:', error);
+      Alert.alert('Lỗi', 'Không thể áp dụng hiệu ứng');
+    }
+  };
+
+  // FEATURE: Xử lý khi thay đổi cường độ beauty effect
+  handleBeautyIntensityChanged = async (groupItem, beautyItem, intensity) => {
+    try {
+      console.log('Changing beauty intensity:', beautyItem.name, 'to', intensity);
+      
+      // FEATURE: Sử dụng EffectsHelper để thay đổi cường độ
+      const effectsHelper = EffectsService.getEffectsHelper();
+      if (effectsHelper && effectsHelper.isReady()) {
+        await effectsHelper.updateEffects(groupItem, beautyItem, intensity);
+        
+        // NOTE: Cập nhật local state nếu cần (cho legacy settings)
+        this.updateLegacyBeautySettings(beautyItem.type, intensity);
+      } else {
+        console.warn('EffectsHelper not ready');
+      }
+    } catch (error) {
+      console.error('Error changing beauty intensity:', error);
+    }
+  };
+
+  // FUNCTIONALITY: Cập nhật legacy beauty settings (backward compatibility)
+  updateLegacyBeautySettings = (effectType, intensity) => {
+    this.setState(prevState => {
+      const newSettings = { ...prevState.beautySettings };
+      
+      // NOTE: Map effect types to legacy settings
+      switch (effectType) {
+        case 3: // Beauty_Face
+          newSettings.smoothIntensity = intensity;
+          break;
+        case 1: // Face_Whitening
+          newSettings.whiteningIntensity = intensity;
+          break;
+        case 9: // Face_Lifting
+          newSettings.faceLiftingIntensity = intensity;
+          break;
+      }
+      
+      return { beautySettings: newSettings };
+    });
+  };
+
+  // FEATURE: Điều chỉnh cường độ beauty effects (legacy method)
   adjustBeautyIntensity = async (effectType, intensity) => {
     let success = false;
     
@@ -460,6 +526,9 @@ export default class TikTokLiveStreamApp extends Component {
             onAdjustBeauty={this.adjustBeautyIntensity}
             onEndStream={this.endStream}
             broadcasterViewRef={this.broadcasterViewRef}
+            // FEATURE: Callbacks mới cho BeautyPanel
+            onBeautyEffectSelected={this.handleBeautyEffectSelected}
+            onBeautyIntensityChanged={this.handleBeautyIntensityChanged}
           />
         );
 
