@@ -10,12 +10,10 @@ import {
   Platform,
   Keyboard
 } from 'react-native';
-
 import { ZegoTextureView } from 'zego-express-engine-reactnative';
 import styles, { Colors } from './TikTokLiveStreamStyles';
 import { MESSAGE_TYPES } from './contants';
-
-// UI/UX: Component màn hình phát sóng
+  // UI/UX: Component màn hình phát sóng
 const BroadcasterScreen = ({ 
   roomID,
   viewerCount,

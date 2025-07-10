@@ -10,6 +10,14 @@
     "test": "jest",
     "postinstall" :  "patch-package"
   },
+  "codegenConfig": {
+    "name": "NativeFileHelperSpec",
+    "type": "modules",
+    "jsSrcsDir": "specs",
+    "android": {
+      "javaPackageName": "com.livestreamingdemo.nativefilehelper"
+    }
+  },
   "dependencies": {
     "@react-native/new-app-screen": "0.80.1",
     "@react-navigation/native": "^7.1.14",

@@ -9,16 +9,23 @@ import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
+import com.livestreamingdemo.nativefilehelper.NativeFileHelperPackage
 
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
       object : DefaultReactNativeHost(this) {
-        override fun getPackages(): List<ReactPackage> =
-            PackageList(this).packages.apply {
-              // Packages that cannot be autolinked yet can be added manually here, for example:
-              // add(MyReactNativePackage())
-            }
+          // === PHẦN QUAN TRỌNG NHẤT LÀ ĐÂY ===
+          override fun getPackages(): List<ReactPackage> {
+              // 1. Lấy danh sách package mặc định từ autolinking
+              val packages = PackageList(this).packages.toMutableList()
+
+              // 2. Thêm package của bạn vào danh sách đó
+              packages.add(NativeFileHelperPackage())
+
+              // 3. Trả về danh sách đã hoàn chỉnh
+              return packages
+          }
 
         override fun getJSMainModuleName(): String = "index"
 
