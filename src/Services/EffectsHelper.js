@@ -14,7 +14,9 @@ import ZegoEffects, {
 } from '@zegocloud/zego-effects-reactnative';
 
 import { Platform } from 'react-native';
-import RNFS from '@dr.pogodin/react-native-fs';
+import RNFS ,{
+  ExternalCachesDirectoryPath
+} from '@dr.pogodin/react-native-fs';
 import { ZEGO_CONFIG } from '../contants';
 import { BeautyType } from '../Effects/EffectConfig';
 
@@ -28,13 +30,13 @@ class EffectsHelper {
   async copyResources() {
     try {
       if (Platform.OS === 'android') {
-        const bundlePath = 'Backgrounds.bundle';
-        const destPath = `${RNFS.ExternalCachesDirectoryPath}/${bundlePath}`;
+        const bundlePath = 'ClarityResources.bundle';
+        const destPath = `${ExternalCachesDirectoryPath}/${bundlePath}`;
         
         console.log(`[copyResources] Copying ${bundlePath} to ${destPath}`);
         
         // NOTE: Kiểm tra nếu đã copy rồi thì skip
-        const exists = await RNFS.exists(destPath);
+        const exists = await exists(destPath);
         if (exists) {
           console.log('[copyResources] Resources already exist, skipping...');
           return;
